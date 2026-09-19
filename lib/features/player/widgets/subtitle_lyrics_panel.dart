@@ -93,8 +93,7 @@ class SubtitleLyricsPanel extends StatelessWidget {
           for (final cueIndex in visible) ...[
             _LyricLine(
               cue: cues[cueIndex],
-              isActive:
-                  speakingCueIndex != null && cueIndex == speakingCueIndex,
+              isActive: activeCueIndex != null && cueIndex == activeCueIndex,
               selectedWordIndices: selectedCueIndex == cueIndex
                   ? selectedWordIndices
                   : const [],

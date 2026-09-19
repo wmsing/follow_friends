@@ -20,26 +20,23 @@ Cue? activeCue(List<Cue> cues, Duration position) {
   return cues[index];
 }
 
+/// Latest cue whose [start] has passed (karaoke-style). Switches at next
+/// [start], not when the previous [end] elapses — avoids merged/long [end]
+/// delaying the highlight.
 int? activeCueIndex(List<Cue> cues, Duration position) {
-  for (var i = 0; i < cues.length; i++) {
-    if (cues[i].contains(position)) return i;
-  }
-  return null;
-}
-
-/// Index for lyrics UI: exact match, or hold previous line in gaps between cues.
-int? lyricDisplayCueIndex(List<Cue> cues, Duration position) {
   if (cues.isEmpty) return null;
 
-  int? lastStarted;
+  int? index;
   for (var i = 0; i < cues.length; i++) {
-    if (position < cues[i].start) {
-      return lastStarted ?? 0;
-    }
-    lastStarted = i;
-    if (cues[i].contains(position)) return i;
+    if (cues[i].start > position) break;
+    index = i;
   }
-  return lastStarted;
+  return index ?? 0;
+}
+
+/// Index for lyrics window; same rule as [activeCueIndex].
+int? lyricDisplayCueIndex(List<Cue> cues, Duration position) {
+  return activeCueIndex(cues, position);
 }
 
 /// Window around the active cue: [before] earlier + active + [after] later.

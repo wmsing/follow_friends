@@ -8,7 +8,7 @@ List<Cue> cuesFromClosedCaptions(Iterable<ClosedCaption> captions) {
         (c) => Cue(
           start: c.offset,
           end: c.end,
-          text: c.text.replaceAll('\n', ' ').trim(),
+          text: c.text.trim(),
         ),
       )
       .where((c) => c.text.isNotEmpty)
@@ -31,6 +31,20 @@ bool subtitleEndsSentence(String text) {
   return end == '.' || end == '?' || end == '!';
 }
 
+final RegExp _captionSegmentBreak = RegExp(r'\n|>>');
+
+/// Pieces of one caption chunk; [breakBefore] is true after `\n` or `>>`.
+List<({String text, bool breakBefore})> captionTextSegments(String text) {
+  final segments = <({String text, bool breakBefore})>[];
+  final parts = text.split(_captionSegmentBreak);
+  for (var i = 0; i < parts.length; i++) {
+    final piece = parts[i].trim();
+    if (piece.isEmpty) continue;
+    segments.add((text: piece, breakBefore: i > 0));
+  }
+  return segments;
+}
+
 /// Merge YouTube caption fragments until a sentence ends with . ? or !
 List<Cue> mergeCuesIntoSentences(List<Cue> raw) {
   if (raw.isEmpty) return [];
@@ -50,11 +64,16 @@ List<Cue> mergeCuesIntoSentences(List<Cue> raw) {
   }
 
   for (final cue in raw) {
-    start ??= cue.start;
-    end = cue.end;
-    text = text.isEmpty ? cue.text : '$text ${cue.text}';
-    if (subtitleEndsSentence(text)) {
-      flush();
+    for (final segment in captionTextSegments(cue.text)) {
+      if (segment.breakBefore && text.isNotEmpty) {
+        flush();
+      }
+      start ??= cue.start;
+      end = cue.end;
+      text = text.isEmpty ? segment.text : '$text ${segment.text}';
+      if (subtitleEndsSentence(text)) {
+        flush();
+      }
     }
   }
   flush();

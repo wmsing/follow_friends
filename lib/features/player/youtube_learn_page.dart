@@ -204,7 +204,7 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                 Material(
                   elevation: 4,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 260),
+                    constraints: const BoxConstraints(minHeight: 280),
                     child: SubtitleLyricsPanel(
                       cues: c.cues,
                       activeCueIndex: c.activeCueIndex,
@@ -224,6 +224,8 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                 ),
               ],
             ),
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.startFloat,
             floatingActionButton: FloatingActionButton.extended(
               onPressed: _openChannelPicker,
               icon: const Icon(Icons.video_library_outlined),
