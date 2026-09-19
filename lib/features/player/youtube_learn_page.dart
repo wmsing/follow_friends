@@ -131,6 +131,35 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
             appBar: AppBar(
               title: const Text('YouTube 学英语'),
               actions: [
+                PopupMenuButton<double>(
+                  tooltip: '播放速度',
+                  onSelected: c.setPlaybackSpeed,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Center(
+                      child: Text(
+                        formatPlaybackSpeedLabel(c.playbackSpeed),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                  ),
+                  itemBuilder: (context) => [
+                    for (final speed in kPlaybackSpeedOptions)
+                      PopupMenuItem<double>(
+                        value: speed,
+                        child: Row(
+                          children: [
+                            if (speed == c.playbackSpeed)
+                              const Icon(Icons.check, size: 18)
+                            else
+                              const SizedBox(width: 18),
+                            const SizedBox(width: 8),
+                            Text(formatPlaybackSpeedLabel(speed)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
                 IconButton(
                   icon: const Icon(Icons.menu_book_outlined),
                   tooltip: '句子重温',
@@ -138,8 +167,11 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.settings_outlined),
-                  onPressed: () =>
-                      LearnSettingsDialog.show(context, widget.settings),
+                  onPressed: () => LearnSettingsDialog.show(
+                    context,
+                    widget.settings,
+                    onSaved: _controller.applySubtitleDisplayMode,
+                  ),
                 ),
               ],
             ),
@@ -192,11 +224,43 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                     onTap: c.togglePlayPause,
                     child: ColoredBox(
                       color: Colors.black,
-                      child: Center(
-                        child: Video(
-                          controller: c.videoController,
-                          fit: BoxFit.contain,
-                        ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Center(
+                            child: Video(
+                              controller: c.videoController,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          if (c.overlayOriginalCaptions)
+                            Positioned(
+                              left: 16,
+                              right: 16,
+                              bottom: 20,
+                              child: Builder(
+                                builder: (context) {
+                                  final line = c.videoOverlayCaptionText;
+                                  if (line == null) return const SizedBox.shrink();
+                                  return Text(
+                                    line,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      shadows: [
+                                        Shadow(
+                                          blurRadius: 8,
+                                          color: Colors.black87,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

@@ -18,6 +18,27 @@ flutter pub get
 flutter run -d macos
 ```
 
+### Web（本地）
+
+```bash
+flutter run -d chrome
+```
+
+### GitHub Pages
+
+推送 `main` 后由 [`.github/workflows/deploy_web.yml`](.github/workflows/deploy_web.yml) 自动构建并发布。
+
+1. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
+2. 等 workflow 跑完后访问：<https://wmsing.github.io/learn_mac/>
+
+本地与 CI 构建（项目页需带 base path）：
+
+```bash
+flutter build web --release --base-href "/learn_mac/"
+```
+
+**Web 限制**：浏览器里无法使用「下载后播放 / youtubedr」；YouTube 接口可能受 CORS 影响，播放与字幕以线上环境为准。桌面版功能最全。
+
 ## 设置
 
 - **在线流式**（默认）：`youtube_explode_dart` + `media_kit`

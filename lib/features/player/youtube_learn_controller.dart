@@ -29,8 +29,11 @@ class YoutubeLearnController extends ChangeNotifier {
   late final VideoController videoController = VideoController(player);
 
   List<cue.Cue> cues = [];
+  List<cue.Cue> _rawCues = [];
+  List<cue.Cue> _mergedCues = [];
   int? activeCueIndex;
   int? speakingCueIndex;
+  int? _overlayActiveCueIndex;
   int? selectedCueIndex;
   int? selectionAnchor;
   List<int> selectedWordIndices = [];
@@ -53,15 +56,60 @@ class YoutubeLearnController extends ChangeNotifier {
 
   YoutubeRepository get youtube => _youtube;
 
+  bool get overlayOriginalCaptions =>
+      _settings.subtitleDisplayMode == SubtitleDisplayMode.original;
+
+  String? get videoOverlayCaptionText {
+    if (!overlayOriginalCaptions) return null;
+    final index = _overlayActiveCueIndex;
+    if (index == null || index < 0 || index >= _rawCues.length) return null;
+    final text = _rawCues[index].text.trim();
+    return text.isEmpty ? null : text;
+  }
+
+  void applySubtitleDisplayMode() {
+    if (_rawCues.isEmpty && _mergedCues.isEmpty) return;
+    cues = _mergedCues;
+    _clearWordSelection();
+    _clearSentenceGloss();
+    _syncCueIndices(player.state.position);
+    notifyListeners();
+  }
+
+  void _syncCueIndices(Duration position) {
+    activeCueIndex = cue.lyricDisplayCueIndex(cues, position);
+    speakingCueIndex = cue.activeCueIndex(cues, position);
+    _overlayActiveCueIndex = overlayOriginalCaptions
+        ? cue.lyricDisplayCueIndex(_rawCues, position)
+        : null;
+  }
+
   void _onPosition(Duration position) {
     final displayIndex = cue.lyricDisplayCueIndex(cues, position);
     final speakingIndex = cue.activeCueIndex(cues, position);
-    if (displayIndex != activeCueIndex || speakingIndex != speakingCueIndex) {
+    final overlayIndex = overlayOriginalCaptions
+        ? cue.lyricDisplayCueIndex(_rawCues, position)
+        : null;
+    if (displayIndex != activeCueIndex ||
+        speakingIndex != speakingCueIndex ||
+        overlayIndex != _overlayActiveCueIndex) {
       activeCueIndex = displayIndex;
       speakingCueIndex = speakingIndex;
+      _overlayActiveCueIndex = overlayIndex;
       notifyListeners();
     }
   }
+
+  double get playbackSpeed => _settings.playbackSpeed;
+
+  Future<void> setPlaybackSpeed(double speed) async {
+    if (!kPlaybackSpeedOptions.contains(speed)) return;
+    await _settings.setPlaybackSpeed(speed);
+    await player.setRate(speed);
+    notifyListeners();
+  }
+
+  Future<void> _applyPlaybackSpeed() => player.setRate(_settings.playbackSpeed);
 
   Future<void> togglePlayPause() async {
     if (player.state.playing) {
@@ -90,19 +138,24 @@ class YoutubeLearnController extends ChangeNotifier {
     error = null;
     downloadPercent = null;
     cues = [];
+    _rawCues = [];
+    _mergedCues = [];
     activeCueIndex = null;
     speakingCueIndex = null;
+    _overlayActiveCueIndex = null;
     _clearWordSelection();
     _clearSentenceGloss();
     notifyListeners();
 
     try {
       final metaFuture = _youtube.fetchVideoMeta(videoId);
-      List<cue.Cue> loadedCues;
       try {
-        loadedCues = await _youtube.fetchEnglishCaptions(videoId);
+        final tracks = await _youtube.fetchEnglishCaptionTracks(videoId);
+        _rawCues = tracks.raw;
+        _mergedCues = tracks.merged;
       } catch (_) {
-        loadedCues = [];
+        _rawCues = [];
+        _mergedCues = [];
       }
 
       late final String mediaSource;
@@ -129,14 +182,14 @@ class YoutubeLearnController extends ChangeNotifier {
         await player.pause();
       }
 
+      await _applyPlaybackSpeed();
+
       _currentVideoId = videoId;
       _currentWatchUrl = trimmed;
       _currentVideoTitle = meta.title;
       _videoDuration = meta.duration;
-      cues = loadedCues;
-      final pos = seekAfter ?? player.state.position;
-      activeCueIndex = cue.lyricDisplayCueIndex(cues, pos);
-      speakingCueIndex = cue.activeCueIndex(cues, pos);
+      applySubtitleDisplayMode();
+      _syncCueIndices(seekAfter ?? player.state.position);
       final cache = await YoutubeLearnCache.load();
       await cache.setLastWatchUrl(trimmed);
     } catch (e) {

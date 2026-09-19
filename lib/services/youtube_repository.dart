@@ -58,7 +58,9 @@ class YoutubeRepository {
     return stream.url;
   }
 
-  Future<List<Cue>> fetchEnglishCaptions(String videoId) async {
+  Future<({List<Cue> raw, List<Cue> merged})> fetchEnglishCaptionTracks(
+    String videoId,
+  ) async {
     final manifest =
         await _explode.videos.closedCaptions.getManifest(videoId);
 
@@ -73,7 +75,12 @@ class YoutubeRepository {
 
     final track = await _explode.videos.closedCaptions.get(trackInfo);
     final raw = cuesFromClosedCaptions(track.captions);
-    return mergeCuesIntoSentences(raw);
+    return (raw: raw, merged: mergeCuesIntoSentences(raw));
+  }
+
+  Future<List<Cue>> fetchEnglishCaptions(String videoId) async {
+    final tracks = await fetchEnglishCaptionTracks(videoId);
+    return tracks.merged;
   }
 
   /// `@Friends`, `https://www.youtube.com/@Friends`, or channel id `UC...`.
