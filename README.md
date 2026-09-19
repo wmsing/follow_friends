@@ -1,8 +1,8 @@
 # 多语言跟读
 
-用 YouTube 视频做多语言跟读：播放、英文字幕同步、点词释义、整句翻译与句子复习。**macOS 桌面版功能最全**；另有 **Web** 演示（GitHub Pages）。
+用 YouTube 视频做多语言跟读：播放、英文字幕同步、点词释义、整句翻译与句子复习。**目标平台：macOS 桌面版。**
 
-用户可见产品名在 `lib/app_branding.dart` 的 `kAppDisplayName`；Web / macOS 安装名见 `web/index.html`、`web/manifest.json`、`macos/Runner/Info.plist`（`CFBundleDisplayName`）。GitHub 仓库名为 `follow_friends`（Pages 路径 `/follow_friends/`）；Dart 包名仍为 `learn_mac`，不影响界面标题。
+用户可见产品名在 `lib/app_branding.dart` 的 `kAppDisplayName`；macOS 安装名见 `macos/Runner/Info.plist`（`CFBundleDisplayName`）。GitHub 仓库：`follow_friends`；Dart 包名仍为 `learn_mac`。
 
 ## 架构
 
@@ -21,46 +21,10 @@ flutter pub get
 flutter run -d macos
 ```
 
-### Web（本地）
-
-```bash
-flutter pub get
-dart run sqflite_common_ffi_web:setup   # 首次 / 升级 sqflite 后：生成 web/sqflite_sw.js
-flutter run -d chrome
-```
-
-终端会打印 Dart 异常（例如插件未实现）；浏览器按 **F12 → Console** 看 JS / Flutter 报错。
-
-模拟 GitHub Pages 子路径（与线上相同的 `/follow_friends/`）：
-
-```bash
-flutter build web --release --base-href "/follow_friends/"
-mkdir -p /tmp/follow_friends_pages/follow_friends
-cp -r build/web/* /tmp/follow_friends_pages/follow_friends/
-cd /tmp/follow_friends_pages && python3 -m http.server 8080
-```
-
-浏览器打开 <http://localhost:8080/follow_friends/>（不要用根路径 `/`，否则资源 404、白屏）。
-
-### GitHub Pages
-
-公开仓库可免费使用 Pages。推送 `main` 后由 [`.github/workflows/deploy_web.yml`](.github/workflows/deploy_web.yml) 自动构建并发布。
-
-1. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-2. 等 workflow 跑完后访问：<https://wmsing.github.io/follow_friends/>
-
-本地与 CI 构建（项目页需带 base path）：
-
-```bash
-flutter build web --release --base-href "/follow_friends/"
-```
-
-**Web 限制**：浏览器 **无法** 直连 YouTube（CORS），网页版 **不能播放/拉字幕**（仅 UI 演示）。完整跟读请用 **macOS 桌面版**；也无法使用「下载后播放 / youtubedr」。若将来需要网页播放，须自建后端代理（本项目未包含）。
-
 ## 设置
 
 - **在线流式**（默认）：`youtube_explode_dart` + `media_kit`
-- **下载播放**（仅 macOS）：需安装 [youtubedr](https://github.com/kkdai/youtube)（`brew install youtubedr`）
+- **下载播放**：需安装 [youtubedr](https://github.com/kkdai/youtube)（`brew install youtubedr`）
 - **Enjoy 查词**：在设置中填写 Enjoy API Token
 - **词典 Sidecar**（可选）：
 
