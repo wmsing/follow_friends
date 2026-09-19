@@ -5,7 +5,7 @@ import '../../../services/subtitle_parser.dart';
 import 'word_gloss.dart';
 
 const Color kActiveLyricLineColor = Colors.black;
-const Color kInactiveLyricLineColor = Color(0xFF9E9E9E);
+const Color kInactiveLyricLineColor = Color(0xFF757575);
 
 class SubtitleLyricsPanel extends StatelessWidget {
   const SubtitleLyricsPanel({

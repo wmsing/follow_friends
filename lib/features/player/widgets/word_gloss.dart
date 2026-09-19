@@ -37,7 +37,6 @@ class WordGloss extends StatelessWidget {
               word,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: fontSize,
-                fontFamily: 'Georgia',
                 decoration: selected ? TextDecoration.underline : null,
                 decorationColor: lineColor ?? theme.colorScheme.primary,
                 decorationThickness: 2,
