@@ -2,7 +2,7 @@
 
 用 YouTube 视频做多语言跟读：播放、英文字幕同步、点词释义、整句翻译与句子复习。**macOS 桌面版功能最全**；另有 **Web** 演示（GitHub Pages）。
 
-用户可见产品名在 `lib/app_branding.dart` 的 `kAppDisplayName`；Web / macOS 安装名见 `web/index.html`、`web/manifest.json`、`macos/Runner/Info.plist`（`CFBundleDisplayName`）。仓库与 Dart 包名仍为 `learn_mac`，不影响界面标题。
+用户可见产品名在 `lib/app_branding.dart` 的 `kAppDisplayName`；Web / macOS 安装名见 `web/index.html`、`web/manifest.json`、`macos/Runner/Info.plist`（`CFBundleDisplayName`）。GitHub 仓库名为 `follow_friends`（Pages 路径 `/follow_friends/`）；Dart 包名仍为 `learn_mac`，不影响界面标题。
 
 ## 架构
 
@@ -15,8 +15,8 @@
 ## 运行
 
 ```bash
-git clone https://github.com/wmsing/learn_mac.git
-cd learn_mac
+git clone https://github.com/wmsing/follow_friends.git
+cd follow_friends
 flutter pub get
 flutter run -d macos
 ```
@@ -31,28 +31,28 @@ flutter run -d chrome
 
 终端会打印 Dart 异常（例如插件未实现）；浏览器按 **F12 → Console** 看 JS / Flutter 报错。
 
-模拟 GitHub Pages 子路径（与线上相同的 `/learn_mac/`）：
+模拟 GitHub Pages 子路径（与线上相同的 `/follow_friends/`）：
 
 ```bash
-flutter build web --release --base-href "/learn_mac/"
-mkdir -p /tmp/learn_mac_pages/learn_mac
-cp -r build/web/* /tmp/learn_mac_pages/learn_mac/
-cd /tmp/learn_mac_pages && python3 -m http.server 8080
+flutter build web --release --base-href "/follow_friends/"
+mkdir -p /tmp/follow_friends_pages/follow_friends
+cp -r build/web/* /tmp/follow_friends_pages/follow_friends/
+cd /tmp/follow_friends_pages && python3 -m http.server 8080
 ```
 
-浏览器打开 <http://localhost:8080/learn_mac/>（不要用根路径 `/`，否则资源 404、白屏）。
+浏览器打开 <http://localhost:8080/follow_friends/>（不要用根路径 `/`，否则资源 404、白屏）。
 
 ### GitHub Pages
 
 公开仓库可免费使用 Pages。推送 `main` 后由 [`.github/workflows/deploy_web.yml`](.github/workflows/deploy_web.yml) 自动构建并发布。
 
 1. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
-2. 等 workflow 跑完后访问：<https://wmsing.github.io/learn_mac/>
+2. 等 workflow 跑完后访问：<https://wmsing.github.io/follow_friends/>
 
 本地与 CI 构建（项目页需带 base path）：
 
 ```bash
-flutter build web --release --base-href "/learn_mac/"
+flutter build web --release --base-href "/follow_friends/"
 ```
 
 **Web 限制**：浏览器里无法使用「下载后播放 / youtubedr」；YouTube 接口可能受 CORS 影响，播放与字幕以线上环境为准。
