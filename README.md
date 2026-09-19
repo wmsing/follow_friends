@@ -55,7 +55,7 @@ cd /tmp/follow_friends_pages && python3 -m http.server 8080
 flutter build web --release --base-href "/follow_friends/"
 ```
 
-**Web 限制**：浏览器里无法使用「下载后播放 / youtubedr」；YouTube 接口可能受 CORS 影响，播放与字幕以线上环境为准。
+**Web 限制**：浏览器 **无法** 直连 YouTube（CORS），网页版 **不能播放/拉字幕**（仅 UI 演示）。完整跟读请用 **macOS 桌面版**；也无法使用「下载后播放 / youtubedr」。若将来需要网页播放，须自建后端代理（本项目未包含）。
 
 ## 设置
 

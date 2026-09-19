@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../platform_support.dart';
 import '../../models/cue.dart' as cue;
 import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
@@ -130,6 +131,12 @@ class YoutubeLearnController extends ChangeNotifier {
     final videoId = _youtube.extractVideoId(trimmed);
     if (videoId == null) {
       error = '无法解析视频 ID';
+      notifyListeners();
+      return;
+    }
+
+    if (kIsWeb) {
+      error = kWebYoutubeUnavailableMessage;
       notifyListeners();
       return;
     }
