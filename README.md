@@ -24,8 +24,23 @@ flutter run -d macos
 ### Web（本地）
 
 ```bash
+flutter pub get
+dart run sqflite_common_ffi_web:setup   # 首次 / 升级 sqflite 后：生成 web/sqflite_sw.js
 flutter run -d chrome
 ```
+
+终端会打印 Dart 异常（例如插件未实现）；浏览器按 **F12 → Console** 看 JS / Flutter 报错。
+
+模拟 GitHub Pages 子路径（与线上相同的 `/learn_mac/`）：
+
+```bash
+flutter build web --release --base-href "/learn_mac/"
+mkdir -p /tmp/learn_mac_pages/learn_mac
+cp -r build/web/* /tmp/learn_mac_pages/learn_mac/
+cd /tmp/learn_mac_pages && python3 -m http.server 8080
+```
+
+浏览器打开 <http://localhost:8080/learn_mac/>（不要用根路径 `/`，否则资源 404、白屏）。
 
 ### GitHub Pages
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -13,8 +14,12 @@ class SentenceReviewStore {
 
   static Future<SentenceReviewStore> open() async {
     if (_instance != null) return _instance!;
-    final dir = await getApplicationDocumentsDirectory();
-    final path = p.join(dir.path, 'learn_mac_sentences.db');
+    final path = kIsWeb
+        ? 'learn_mac_sentences.db'
+        : p.join(
+            (await getApplicationDocumentsDirectory()).path,
+            'learn_mac_sentences.db',
+          );
     final db = await openDatabase(
       path,
       version: 1,

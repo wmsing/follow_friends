@@ -33,6 +33,7 @@ jobs:
       - name: Build web
         run: |
           flutter pub get
+          dart run sqflite_common_ffi_web:setup
           flutter build web --release --base-href "/learn_mac/"
 
       - name: Upload Pages artifact
