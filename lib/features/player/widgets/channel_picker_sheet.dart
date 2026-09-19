@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/channel_listing.dart';
+import '../../../services/youtube_learn_cache.dart';
 import '../../../services/youtube_repository.dart';
 
 class ChannelPickerSheet extends StatefulWidget {
@@ -44,6 +45,28 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
   bool _loading = false;
   String? _error;
   ChannelListing? _listing;
+  bool _listingFromCache = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreFromCache();
+  }
+
+  Future<void> _restoreFromCache() async {
+    final cache = await YoutubeLearnCache.load();
+    final data = cache.loadChannelCache();
+    if (!mounted) return;
+    setState(() {
+      if (data.channelInput != null && data.channelInput!.isNotEmpty) {
+        _channelController.text = data.channelInput!;
+      }
+      if (data.listing != null) {
+        _listing = data.listing;
+        _listingFromCache = true;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -62,7 +85,13 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
       final listing =
           await widget.youtube.fetchChannelVideos(_channelController.text);
       if (!mounted) return;
-      setState(() => _listing = listing);
+      final cache = await YoutubeLearnCache.load();
+      await cache.saveChannelListing(_channelController.text, listing);
+      if (!mounted) return;
+      setState(() {
+        _listing = listing;
+        _listingFromCache = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -132,9 +161,21 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                _listing!.channelTitle,
-                style: Theme.of(context).textTheme.titleMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _listing!.channelTitle,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (_listingFromCache)
+                    Text(
+                      '本地缓存 · 点加载更新',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                    ),
+                ],
               ),
             ),
           ),
