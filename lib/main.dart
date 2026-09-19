@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
@@ -11,8 +13,34 @@ import 'services/sentence_review_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await runZonedGuarded(
+    () async {
+      try {
+        await _bootstrap();
+      } catch (e, st) {
+        FlutterError.dumpErrorToConsole(
+          FlutterErrorDetails(exception: e, stack: st),
+        );
+        runApp(StartupErrorApp(message: e.toString()));
+      }
+    },
+    (error, stack) {
+      FlutterError.dumpErrorToConsole(
+        FlutterErrorDetails(exception: error, stack: stack),
+      );
+      runApp(StartupErrorApp(message: error.toString()));
+    },
+  );
+}
+
+Future<void> _bootstrap() async {
   if (kIsWeb) {
-    databaseFactory = databaseFactoryFfiWeb;
+    // SharedWorker + relative URLs break under GitHub Pages subpaths; load wasm in-app.
+    final wasmUri = Uri.base.resolve('sqlite3.wasm');
+    databaseFactory = createDatabaseFactoryFfiWeb(
+      noWebWorker: true,
+      options: SqfliteFfiWebOptions(sqlite3WasmUri: wasmUri),
+    );
   } else {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -21,6 +49,29 @@ Future<void> main() async {
   final settings = await AppSettings.load();
   final sentenceStore = await SentenceReviewStore.open();
   runApp(LearnMacApp(settings: settings, sentenceStore: sentenceStore));
+}
+
+class StartupErrorApp extends StatelessWidget {
+  const StartupErrorApp({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SelectableText(
+              '启动失败：$message',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class LearnMacApp extends StatelessWidget {
