@@ -1,11 +1,11 @@
 {
-    "name": "learn_mac",
-    "short_name": "learn_mac",
+    "name": "多语言跟读",
+    "short_name": "跟读",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "YouTube 多语言字幕跟读与句子复习",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

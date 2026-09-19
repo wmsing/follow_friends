@@ -4,6 +4,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
+import 'app_branding.dart';
 import 'features/player/youtube_learn_page.dart';
 import 'services/app_settings.dart';
 import 'services/sentence_review_store.dart';
@@ -35,7 +36,7 @@ class LearnMacApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Learn Mac',
+      title: kAppDisplayName,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,

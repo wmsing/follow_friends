@@ -1,6 +1,8 @@
-# Learn Mac — Flutter YouTube 学英语
+# 多语言跟读
 
-粘贴 YouTube 链接播放；底部显示当前英文字幕；点词下划线并显示中文释义。
+用 YouTube 视频做多语言跟读：播放、英文字幕同步、点词释义、整句翻译与句子复习。**macOS 桌面版功能最全**；另有 **Web** 演示（GitHub Pages）。
+
+用户可见产品名在 `lib/app_branding.dart` 的 `kAppDisplayName`；Web / macOS 安装名见 `web/index.html`、`web/manifest.json`、`macos/Runner/Info.plist`（`CFBundleDisplayName`）。仓库与 Dart 包名仍为 `learn_mac`，不影响界面标题。
 
 ## 架构
 
@@ -13,6 +15,7 @@
 ## 运行
 
 ```bash
+git clone https://github.com/wmsing/learn_mac.git
 cd learn_mac
 flutter pub get
 flutter run -d macos
@@ -26,7 +29,7 @@ flutter run -d chrome
 
 ### GitHub Pages
 
-推送 `main` 后由 [`.github/workflows/deploy_web.yml`](.github/workflows/deploy_web.yml) 自动构建并发布。
+公开仓库可免费使用 Pages。推送 `main` 后由 [`.github/workflows/deploy_web.yml`](.github/workflows/deploy_web.yml) 自动构建并发布。
 
 1. 仓库 **Settings → Pages → Build and deployment → Source** 选 **GitHub Actions**。
 2. 等 workflow 跑完后访问：<https://wmsing.github.io/learn_mac/>
@@ -37,12 +40,12 @@ flutter run -d chrome
 flutter build web --release --base-href "/learn_mac/"
 ```
 
-**Web 限制**：浏览器里无法使用「下载后播放 / youtubedr」；YouTube 接口可能受 CORS 影响，播放与字幕以线上环境为准。桌面版功能最全。
+**Web 限制**：浏览器里无法使用「下载后播放 / youtubedr」；YouTube 接口可能受 CORS 影响，播放与字幕以线上环境为准。
 
 ## 设置
 
 - **在线流式**（默认）：`youtube_explode_dart` + `media_kit`
-- **下载播放**：需安装 [youtubedr](https://github.com/kkdai/youtube)（`brew install youtubedr`），与 Enjoy 相同 CLI
+- **下载播放**（仅 macOS）：需安装 [youtubedr](https://github.com/kkdai/youtube)（`brew install youtubedr`）
 - **Enjoy 查词**：在设置中填写 Enjoy API Token
 - **词典 Sidecar**（可选）：
 

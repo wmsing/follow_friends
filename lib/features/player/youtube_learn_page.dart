@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../app_branding.dart';
 import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
 import '../../services/sentence_review_store.dart';
@@ -129,7 +130,7 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
           onKeyEvent: _onPageKey,
           child: Scaffold(
             appBar: AppBar(
-              title: const Text('YouTube 学英语'),
+              title: const Text(kAppDisplayName),
               actions: [
                 PopupMenuButton<double>(
                   tooltip: '播放速度',

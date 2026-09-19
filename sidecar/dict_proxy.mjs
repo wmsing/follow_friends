@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Optional local dictionary proxy for Learn Mac.
+ * Optional local dictionary proxy for 多语言跟读 (learn_mac).
  * GET /lookup?word=hello -> { "translation": "..." }
  *
  * Set ENJOY_API_TOKEN to proxy Enjoy /api/lookups (same as Enjoy desktop).
