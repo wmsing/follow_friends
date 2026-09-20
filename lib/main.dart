@@ -1,13 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 import 'app_branding.dart';
 import 'features/player/youtube_learn_page.dart';
+import 'widgets/launch_splash.dart';
 import 'services/app_settings.dart';
 import 'services/sentence_review_store.dart';
 
@@ -34,17 +33,8 @@ Future<void> main() async {
 }
 
 Future<void> _bootstrap() async {
-  if (kIsWeb) {
-    // SharedWorker + relative URLs break under GitHub Pages subpaths; load wasm in-app.
-    final wasmUri = Uri.base.resolve('sqlite3.wasm');
-    databaseFactory = createDatabaseFactoryFfiWeb(
-      noWebWorker: true,
-      options: SqfliteFfiWebOptions(sqlite3WasmUri: wasmUri),
-    );
-  } else {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+  sqfliteFfiInit();
+  databaseFactory = databaseFactoryFfi;
   MediaKit.ensureInitialized();
   final settings = await AppSettings.load();
   final sentenceStore = await SentenceReviewStore.open();
@@ -92,9 +82,11 @@ class LearnMacApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2563EB)),
         useMaterial3: true,
       ),
-      home: YoutubeLearnPage(
-        settings: settings,
-        sentenceStore: sentenceStore,
+      home: LaunchSplash(
+        child: YoutubeLearnPage(
+          settings: settings,
+          sentenceStore: sentenceStore,
+        ),
       ),
     );
   }

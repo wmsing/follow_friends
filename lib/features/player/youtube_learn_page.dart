@@ -1,12 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../app_branding.dart';
-import '../../platform_support.dart';
 import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
 import '../../services/sentence_review_store.dart';
@@ -51,15 +49,13 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
 
   Future<void> _onFirstFrame() async {
     if (!mounted) return;
-    if (!kIsWeb) {
-      final cache = await YoutubeLearnCache.load();
-      final last = cache.lastWatchUrl;
-      if (last != null &&
-          last.isNotEmpty &&
-          _controller.youtube.isValidYoutubeUrl(last)) {
-        _urlController.text = last;
-        await _loadVideo();
-      }
+    final cache = await YoutubeLearnCache.load();
+    final last = cache.lastWatchUrl;
+    if (last != null &&
+        last.isNotEmpty &&
+        _controller.youtube.isValidYoutubeUrl(last)) {
+      _urlController.text = last;
+      await _loadVideo();
     }
     if (mounted) _pageFocusNode.requestFocus();
   }
@@ -182,19 +178,6 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
             ),
             body: Column(
               children: [
-                if (kIsWeb)
-                  MaterialBanner(
-                    content: Text(kWebYoutubeUnavailableMessage),
-                    leading: const Icon(Icons.info_outline),
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    actions: [
-                      TextButton(
-                        onPressed: () => ScaffoldMessenger.of(context)
-                            .hideCurrentMaterialBanner(),
-                        child: const Text('知道了'),
-                      ),
-                    ],
-                  ),
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
