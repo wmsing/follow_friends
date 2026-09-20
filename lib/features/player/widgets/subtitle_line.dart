@@ -61,6 +61,24 @@ class SubtitleLine extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (sentenceGlossLoading || (sentenceGloss?.isNotEmpty ?? false))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4, left: 32, right: 32),
+              child: sentenceGlossLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
+                    )
+                  : Text(
+                      sentenceGloss!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: kSubtitleGlossColor,
+                            height: 1.35,
+                          ),
+                    ),
+            ),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -112,24 +130,6 @@ class SubtitleLine extends StatelessWidget {
                 const SizedBox(width: 32),
             ],
           ),
-          if (sentenceGlossLoading || (sentenceGloss?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 32, right: 32),
-              child: sentenceGlossLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 1.5),
-                    )
-                  : Text(
-                      sentenceGloss!,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: kSubtitleGlossColor,
-                            height: 1.35,
-                          ),
-                    ),
-            ),
         ],
       ),
     );

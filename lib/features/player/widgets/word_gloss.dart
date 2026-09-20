@@ -40,16 +40,6 @@ class WordGloss extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              word,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontSize: fontSize,
-                decoration: underlined ? TextDecoration.underline : null,
-                decorationColor: decorationColor,
-                decorationThickness: 2,
-                color: lineColor ?? (lightOnDark ? Colors.white : null),
-              ),
-            ),
             if (underlined && (loading || (gloss != null && gloss!.isNotEmpty)))
               SizedBox(
                 height: 18,
@@ -62,12 +52,24 @@ class WordGloss extends StatelessWidget {
                     : Text(
                         gloss!,
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: const Color(0xFF1565C0),
+                          color: lightOnDark
+                              ? const Color(0xFF90CAF9)
+                              : const Color(0xFF1565C0),
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
               ),
+            Text(
+              word,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontSize: fontSize,
+                decoration: underlined ? TextDecoration.underline : null,
+                decorationColor: decorationColor,
+                decorationThickness: 2,
+                color: lineColor ?? (lightOnDark ? Colors.white : null),
+              ),
+            ),
           ],
         ),
       ),
