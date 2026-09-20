@@ -9,6 +9,7 @@ import 'features/player/youtube_learn_page.dart';
 import 'widgets/launch_splash.dart';
 import 'services/app_settings.dart';
 import 'services/sentence_review_store.dart';
+import 'services/study_mark_store.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,14 @@ Future<void> _bootstrap() async {
   MediaKit.ensureInitialized();
   final settings = await AppSettings.load();
   final sentenceStore = await SentenceReviewStore.open();
-  runApp(LearnMacApp(settings: settings, sentenceStore: sentenceStore));
+  final studyMarkStore = await StudyMarkStore.open();
+  runApp(
+    LearnMacApp(
+      settings: settings,
+      sentenceStore: sentenceStore,
+      studyMarkStore: studyMarkStore,
+    ),
+  );
 }
 
 class StartupErrorApp extends StatelessWidget {
@@ -69,10 +77,12 @@ class LearnMacApp extends StatelessWidget {
     super.key,
     required this.settings,
     required this.sentenceStore,
+    required this.studyMarkStore,
   });
 
   final AppSettings settings;
   final SentenceReviewStore sentenceStore;
+  final StudyMarkStore studyMarkStore;
 
   @override
   Widget build(BuildContext context) {
@@ -86,6 +96,7 @@ class LearnMacApp extends StatelessWidget {
         child: YoutubeLearnPage(
           settings: settings,
           sentenceStore: sentenceStore,
+          studyMarkStore: studyMarkStore,
         ),
       ),
     );

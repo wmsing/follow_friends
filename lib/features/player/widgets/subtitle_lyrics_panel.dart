@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/cue.dart';
-import '../../../services/subtitle_parser.dart';
-import 'word_gloss.dart';
-
-const Color kActiveLyricLineColor = Colors.black;
-const Color kInactiveLyricLineColor = Color(0xFF757575);
+import 'subtitle_line.dart' show SubtitleLine, kSubtitleLineFontActive, kSubtitleLineFontInactive;
 
 class SubtitleLyricsPanel extends StatelessWidget {
   const SubtitleLyricsPanel({
@@ -14,6 +10,8 @@ class SubtitleLyricsPanel extends StatelessWidget {
     required this.activeCueIndex,
     required this.selectedWordIndices,
     required this.glossByIndex,
+    required this.studyMarkedIndicesForCue,
+    required this.studyGlossForCue,
     required this.loadingIndex,
     required this.onWordTap,
     required this.onLineReplay,
@@ -25,12 +23,17 @@ class SubtitleLyricsPanel extends StatelessWidget {
     this.sentenceGlossLoading = false,
   });
 
+  static const double currentFontSize = kSubtitleLineFontActive;
+  static const double pastFontSize = kSubtitleLineFontInactive;
+
   final List<Cue> cues;
   final int? activeCueIndex;
   final int? speakingCueIndex;
   final int? selectedCueIndex;
   final List<int> selectedWordIndices;
   final Map<int, String> glossByIndex;
+  final Set<int> Function(int cueIndex) studyMarkedIndicesForCue;
+  final Map<int, String> Function(int cueIndex) studyGlossForCue;
   final int? loadingIndex;
   final void Function(int cueIndex, int wordIndex, String token) onWordTap;
   final void Function(int cueIndex) onLineReplay;
@@ -38,10 +41,6 @@ class SubtitleLyricsPanel extends StatelessWidget {
   final int? sentenceGlossCueIndex;
   final String? sentenceGloss;
   final bool sentenceGlossLoading;
-
-  static const double _currentFontSize = 30;
-  static const Color _glossColor = Color(0xFF1565C0);
-  static const double _pastFontSize = 18;
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +90,7 @@ class SubtitleLyricsPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final cueIndex in visible) ...[
-            _LyricLine(
+            SubtitleLine(
               cue: cues[cueIndex],
               isActive: activeCueIndex != null && cueIndex == activeCueIndex,
               selectedWordIndices: selectedCueIndex == cueIndex
@@ -100,6 +99,8 @@ class SubtitleLyricsPanel extends StatelessWidget {
               glossByIndex: selectedCueIndex == cueIndex
                   ? glossByIndex
                   : const {},
+              studyMarkedIndices: studyMarkedIndicesForCue(cueIndex),
+              studyGlossByIndex: studyGlossForCue(cueIndex),
               loadingIndex:
                   selectedCueIndex == cueIndex ? loadingIndex : null,
               onWordTap: (wordIndex, token) =>
@@ -114,111 +115,6 @@ class SubtitleLyricsPanel extends StatelessWidget {
             ),
             if (cueIndex != visible.last) const SizedBox(height: 10),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _LyricLine extends StatelessWidget {
-  const _LyricLine({
-    required this.cue,
-    required this.isActive,
-    required this.selectedWordIndices,
-    required this.glossByIndex,
-    required this.loadingIndex,
-    required this.onWordTap,
-    required this.onLineReplay,
-    required this.onSentenceTranslate,
-    this.sentenceGloss,
-    this.sentenceGlossLoading = false,
-  });
-
-  final Cue cue;
-  final bool isActive;
-  final List<int> selectedWordIndices;
-  final Map<int, String> glossByIndex;
-  final int? loadingIndex;
-  final void Function(int wordIndex, String token) onWordTap;
-  final VoidCallback onLineReplay;
-  final VoidCallback onSentenceTranslate;
-  final String? sentenceGloss;
-  final bool sentenceGlossLoading;
-
-  @override
-  Widget build(BuildContext context) {
-    final words = splitSubtitleWords(cue.text);
-    final fontSize = isActive
-        ? SubtitleLyricsPanel._currentFontSize
-        : SubtitleLyricsPanel._pastFontSize;
-    final lineColor =
-        isActive ? kActiveLyricLineColor : kInactiveLyricLineColor;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              IconButton(
-                onPressed: onLineReplay,
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                iconSize: 20,
-                tooltip: '重播本句',
-                icon: Icon(Icons.replay_rounded, color: lineColor),
-              ),
-              Expanded(
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  runSpacing: 4,
-                  children: [
-                    for (var i = 0; i < words.length; i++)
-                      WordGloss(
-                        word: words[i],
-                        selected: selectedWordIndices.contains(i),
-                        gloss: glossByIndex[i],
-                        loading: loadingIndex == i,
-                        fontSize: fontSize,
-                        lineColor: lineColor,
-                        onTap: () => onWordTap(i, words[i]),
-                      ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: onSentenceTranslate,
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                iconSize: 20,
-                tooltip: '翻译整句',
-                icon: Icon(Icons.translate_rounded, color: lineColor),
-              ),
-            ],
-          ),
-          if (sentenceGlossLoading || (sentenceGloss?.isNotEmpty ?? false))
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 32, right: 32),
-              child: sentenceGlossLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 1.5),
-                    )
-                  : Text(
-                      sentenceGloss!,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: SubtitleLyricsPanel._glossColor,
-                            height: 1.35,
-                          ),
-                    ),
-            ),
         ],
       ),
     );

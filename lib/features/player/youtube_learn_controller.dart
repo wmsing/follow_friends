@@ -9,21 +9,34 @@ import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
 import '../../services/youtube_learn_cache.dart';
 import '../../services/download_service.dart';
+import '../../models/study_mark.dart';
 import '../../services/gloss_service.dart';
+import '../../services/study_mark_store.dart';
 import '../../services/subtitle_parser.dart';
 import '../../services/youtube_repository.dart';
 
 class YoutubeLearnController extends ChangeNotifier {
-  YoutubeLearnController({required AppSettings settings})
-      : _settings = settings,
+  YoutubeLearnController({
+    required AppSettings settings,
+    required StudyMarkStore studyMarkStore,
+  })  : _settings = settings,
+        _studyMarkStore = studyMarkStore,
         _gloss = GlossService(settings: settings) {
     _positionSub = player.stream.position.listen(_onPosition);
   }
 
   final AppSettings _settings;
+  final StudyMarkStore _studyMarkStore;
   final YoutubeRepository _youtube = YoutubeRepository();
   final DownloadService _download = DownloadService();
   final GlossService _gloss;
+
+  final Map<int, List<StudyMark>> _studyMarksByCue = {};
+  int? studyMarkLoadingCueIndex;
+  int? studyMarkLoadingWordIndex;
+  int? _studyPrepCueIndex;
+  int? _studyPrepAnchor;
+  List<int> _studyPrepIndices = [];
 
   final Player player = Player();
   late final VideoController videoController = VideoController(player);
@@ -140,6 +153,12 @@ class YoutubeLearnController extends ChangeNotifier {
     cues = [];
     _rawCues = [];
     _mergedCues = [];
+    _studyMarksByCue.clear();
+    _studyPrepCueIndex = null;
+    _studyPrepAnchor = null;
+    _studyPrepIndices = [];
+    studyMarkLoadingCueIndex = null;
+    studyMarkLoadingWordIndex = null;
     activeCueIndex = null;
     speakingCueIndex = null;
     _overlayActiveCueIndex = null;
@@ -173,14 +192,12 @@ class YoutubeLearnController extends ChangeNotifier {
       }
 
       final meta = await metaFuture;
-      final playOnOpen = seekAfter == null;
 
-      await player.open(Media(mediaSource), play: playOnOpen);
-
+      await player.open(Media(mediaSource), play: false);
       if (seekAfter != null) {
         await player.seek(seekAfter);
-        await player.pause();
       }
+      await player.pause();
 
       await _applyPlaybackSpeed();
 
@@ -188,6 +205,7 @@ class YoutubeLearnController extends ChangeNotifier {
       _currentWatchUrl = trimmed;
       _currentVideoTitle = meta.title;
       _videoDuration = meta.duration;
+      await _loadStudyMarks(videoId);
       applySubtitleDisplayMode();
       _syncCueIndices(seekAfter ?? player.state.position);
       final cache = await YoutubeLearnCache.load();
@@ -283,6 +301,137 @@ class YoutubeLearnController extends ChangeNotifier {
   }
 
   /// Returns a sentence to persist when translation succeeded and should be saved.
+  Future<void> _loadStudyMarks(String videoId) async {
+    _studyMarksByCue.clear();
+    final marks = await _studyMarkStore.listForVideo(videoId);
+    for (final mark in marks) {
+      _studyMarksByCue.putIfAbsent(mark.cueIndex, () => []).add(mark);
+    }
+  }
+
+  Set<int> markedWordIndices(int cueIndex) {
+    final marks = _studyMarksByCue[cueIndex];
+    if (marks == null) return {};
+    final indices = <int>{};
+    for (final mark in marks) {
+      indices.addAll(mark.wordIndices);
+    }
+    return indices;
+  }
+
+  Map<int, String> studyGlossForCue(int cueIndex) {
+    final marks = _studyMarksByCue[cueIndex];
+    if (marks == null) return {};
+    final gloss = <int, String>{};
+    for (final mark in marks) {
+      if (mark.chineseGloss.isNotEmpty) {
+        gloss[mark.anchorWordIndex] = mark.chineseGloss;
+      }
+    }
+    return gloss;
+  }
+
+  bool get hasStudyMarks => _studyMarksByCue.isNotEmpty;
+
+  Future<void> toggleStudyMark(int cueIndex, int index) async {
+    if (cueIndex < 0 || cueIndex >= cues.length) return;
+    final videoId = _currentVideoId;
+    if (videoId == null) return;
+
+    final words = splitSubtitleWords(cues[cueIndex].text);
+
+    if (_studyPrepCueIndex == cueIndex && _studyPrepIndices.contains(index)) {
+      final anchor = _studyPrepAnchor;
+      if (anchor != null) {
+        await _studyMarkStore.deleteMark(
+          videoId: videoId,
+          cueIndex: cueIndex,
+          anchorWordIndex: anchor,
+        );
+        _removeMarkFromMemory(cueIndex, anchor);
+      }
+      _studyPrepCueIndex = null;
+      _studyPrepAnchor = null;
+      _studyPrepIndices = [];
+      studyMarkLoadingCueIndex = null;
+      studyMarkLoadingWordIndex = null;
+      notifyListeners();
+      return;
+    }
+
+    final int anchor;
+    final List<int> indices;
+    if (_studyPrepCueIndex != cueIndex || _studyPrepAnchor == null) {
+      anchor = index;
+      indices = [index];
+    } else {
+      anchor = _studyPrepAnchor!;
+      indices = wordIndicesInRange(anchor, index);
+    }
+
+    final phrase = phraseFromIndices(words, indices);
+    final sentence = cues[cueIndex];
+    final glossSlot = indices.first;
+
+    _studyPrepCueIndex = cueIndex;
+    _studyPrepAnchor = anchor;
+    _studyPrepIndices = indices;
+    studyMarkLoadingCueIndex = cueIndex;
+    studyMarkLoadingWordIndex = glossSlot;
+    notifyListeners();
+
+    try {
+      final gloss = await _gloss.glossWord(
+        token: phrase,
+        sentenceContext: sentence.text,
+      );
+      final mark = StudyMark(
+        videoId: videoId,
+        cueIndex: cueIndex,
+        anchorWordIndex: glossSlot,
+        wordIndices: indices,
+        englishPhrase: phrase,
+        chineseGloss: gloss,
+        updatedAt: DateTime.now(),
+      );
+      await _studyMarkStore.upsert(mark);
+      _upsertMarkInMemory(mark);
+      studyMarkLoadingCueIndex = null;
+      studyMarkLoadingWordIndex = null;
+      notifyListeners();
+    } catch (_) {
+      studyMarkLoadingCueIndex = null;
+      studyMarkLoadingWordIndex = null;
+      notifyListeners();
+    }
+  }
+
+  void _upsertMarkInMemory(StudyMark mark) {
+    final list = _studyMarksByCue.putIfAbsent(mark.cueIndex, () => []);
+    list.removeWhere((m) => m.anchorWordIndex == mark.anchorWordIndex);
+    list.add(mark);
+  }
+
+  void _removeMarkFromMemory(int cueIndex, int anchorWordIndex) {
+    final list = _studyMarksByCue[cueIndex];
+    if (list == null) return;
+    list.removeWhere((m) => m.anchorWordIndex == anchorWordIndex);
+    if (list.isEmpty) _studyMarksByCue.remove(cueIndex);
+  }
+
+  Future<void> clearStudyMarksForVideo() async {
+    final videoId = _currentVideoId;
+    if (videoId == null) return;
+    await _studyMarkStore.deleteAllForVideo(videoId);
+    _studyMarksByCue.clear();
+    _studyPrepCueIndex = null;
+    _studyPrepAnchor = null;
+    _studyPrepIndices = [];
+    studyMarkLoadingCueIndex = null;
+    studyMarkLoadingWordIndex = null;
+    notifyListeners();
+  }
+
   Future<SavedSentence?> onSentenceTranslate(int cueIndex) async {
     if (cueIndex < 0 || cueIndex >= cues.length) return null;
 

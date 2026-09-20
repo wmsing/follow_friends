@@ -8,10 +8,13 @@ import '../../app_branding.dart';
 import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
 import '../../services/sentence_review_store.dart';
+import '../../services/study_mark_store.dart';
 import '../../services/youtube_learn_cache.dart';
 import '../review/sentence_review_page.dart';
 import 'widgets/channel_picker_sheet.dart';
 import 'widgets/learn_settings_dialog.dart';
+import 'prep_subtitle_page.dart';
+import 'widgets/subtitle_line.dart';
 import 'widgets/subtitle_lyrics_panel.dart';
 import 'youtube_learn_controller.dart';
 
@@ -23,10 +26,12 @@ class YoutubeLearnPage extends StatefulWidget {
     super.key,
     required this.settings,
     required this.sentenceStore,
+    required this.studyMarkStore,
   });
 
   final AppSettings settings;
   final SentenceReviewStore sentenceStore;
+  final StudyMarkStore studyMarkStore;
 
   @override
   State<YoutubeLearnPage> createState() => _YoutubeLearnPageState();
@@ -34,8 +39,10 @@ class YoutubeLearnPage extends StatefulWidget {
 
 class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
   final _urlController = TextEditingController();
-  late final YoutubeLearnController _controller =
-      YoutubeLearnController(settings: widget.settings);
+  late final YoutubeLearnController _controller = YoutubeLearnController(
+    settings: widget.settings,
+    studyMarkStore: widget.studyMarkStore,
+  );
 
   final _pageFocusNode = FocusNode();
   final _urlFocusNode = FocusNode();
@@ -96,6 +103,15 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
     if (picked == null || !mounted) return;
     _urlController.text = picked.watchUrl;
     await _loadVideo(seekAfter: picked.cueStart);
+  }
+
+  void _openPrep() {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrepSubtitlePage(controller: _controller),
+      ),
+    );
   }
 
   void _openChannelPicker() {
@@ -160,6 +176,11 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                         ),
                       ),
                   ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_note_outlined),
+                  tooltip: '预习选词',
+                  onPressed: c.cues.isEmpty || c.loading ? null : _openPrep,
                 ),
                 IconButton(
                   icon: const Icon(Icons.menu_book_outlined),
@@ -234,7 +255,33 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                               fit: BoxFit.contain,
                             ),
                           ),
-                          if (c.overlayOriginalCaptions)
+                          if (c.activeCueIndex != null &&
+                              c.activeCueIndex! >= 0 &&
+                              c.activeCueIndex! < c.cues.length)
+                            Positioned(
+                              left: 16,
+                              right: 16,
+                              bottom: 20,
+                              child: SubtitleLine(
+                                cue: c.cues[c.activeCueIndex!],
+                                isActive: true,
+                                selectedWordIndices: const [],
+                                glossByIndex: const {},
+                                studyMarkedIndices: c.markedWordIndices(
+                                  c.activeCueIndex!,
+                                ),
+                                studyGlossByIndex: c.studyGlossForCue(
+                                  c.activeCueIndex!,
+                                ),
+                                loadingIndex: null,
+                                showLineActions: false,
+                                lightOnDark: true,
+                                fontSizeActive: 20,
+                                fontSizeInactive: 20,
+                                onWordTap: (_, __) {},
+                              ),
+                            )
+                          else if (c.overlayOriginalCaptions)
                             Positioned(
                               left: 16,
                               right: 16,
@@ -242,7 +289,9 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                               child: Builder(
                                 builder: (context) {
                                   final line = c.videoOverlayCaptionText;
-                                  if (line == null) return const SizedBox.shrink();
+                                  if (line == null) {
+                                    return const SizedBox.shrink();
+                                  }
                                   return Text(
                                     line,
                                     textAlign: TextAlign.center,
@@ -277,6 +326,14 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                       selectedCueIndex: c.selectedCueIndex,
                       selectedWordIndices: c.selectedWordIndices,
                       glossByIndex: c.glossByIndex,
+                      studyMarkedIndicesForCue: (cueIndex) {
+                        if (c.activeCueIndex != cueIndex) return {};
+                        return c.markedWordIndices(cueIndex);
+                      },
+                      studyGlossForCue: (cueIndex) {
+                        if (c.activeCueIndex != cueIndex) return {};
+                        return c.studyGlossForCue(cueIndex);
+                      },
                       loadingIndex: c.loadingIndex,
                       onWordTap: c.onWordTap,
                       onLineReplay: c.onLineReplay,

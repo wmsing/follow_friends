@@ -5,6 +5,7 @@ class WordGloss extends StatelessWidget {
     super.key,
     required this.word,
     required this.selected,
+    this.studyMark = false,
     this.gloss,
     this.loading = false,
     required this.onTap,
@@ -18,6 +19,7 @@ class WordGloss extends StatelessWidget {
   final double fontSize;
   final Color? lineColor;
   final bool selected;
+  final bool studyMark;
   final String? gloss;
   final bool loading;
   final VoidCallback onTap;
@@ -25,6 +27,11 @@ class WordGloss extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final underlined = selected || studyMark;
+    final decorationColor = studyMark && !selected
+        ? const Color(0xFFE65100)
+        : (lineColor ?? theme.colorScheme.primary);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2),
       child: GestureDetector(
@@ -37,13 +44,13 @@ class WordGloss extends StatelessWidget {
               word,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: fontSize,
-                decoration: selected ? TextDecoration.underline : null,
-                decorationColor: lineColor ?? theme.colorScheme.primary,
+                decoration: underlined ? TextDecoration.underline : null,
+                decorationColor: decorationColor,
                 decorationThickness: 2,
                 color: lineColor ?? (lightOnDark ? Colors.white : null),
               ),
             ),
-            if (selected && (loading || (gloss != null && gloss!.isNotEmpty)))
+            if (underlined && (loading || (gloss != null && gloss!.isNotEmpty)))
               SizedBox(
                 height: 18,
                 child: loading
