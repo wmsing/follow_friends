@@ -8,16 +8,20 @@ class ChannelPickerSheet extends StatefulWidget {
   const ChannelPickerSheet({
     super.key,
     required this.youtube,
+    required this.playingVideoId,
     required this.onVideoSelected,
   });
 
   final YoutubeRepository youtube;
-  final void Function(String watchUrl) onVideoSelected;
+  final String? playingVideoId;
+  final void Function(String watchUrl, ChannelListing listing) onVideoSelected;
 
   static Future<void> show(
     BuildContext context, {
     required YoutubeRepository youtube,
-    required void Function(String watchUrl) onVideoSelected,
+    String? playingVideoId,
+    required void Function(String watchUrl, ChannelListing listing)
+        onVideoSelected,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -27,6 +31,7 @@ class ChannelPickerSheet extends StatefulWidget {
         height: MediaQuery.sizeOf(context).height * 0.75,
         child: ChannelPickerSheet(
           youtube: youtube,
+          playingVideoId: playingVideoId,
           onVideoSelected: onVideoSelected,
         ),
       ),
@@ -195,9 +200,20 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final video = _listing!.videos[index];
+                    final playing = widget.playingVideoId != null &&
+                        widget.playingVideoId == video.videoId;
+                    final scheme = Theme.of(context).colorScheme;
                     return ListTile(
+                      selected: playing,
+                      selectedTileColor:
+                          scheme.primaryContainer.withValues(alpha: 0.45),
                       leading: video.thumbnailUrl == null
-                          ? const Icon(Icons.play_circle_outline)
+                          ? Icon(
+                              playing
+                                  ? Icons.play_circle
+                                  : Icons.play_circle_outline,
+                              color: playing ? scheme.primary : null,
+                            )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: Image.network(
@@ -211,11 +227,23 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
                         video.title.isNotEmpty ? video.title : video.videoId,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: playing
+                            ? TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: scheme.primary,
+                              )
+                            : null,
                       ),
-                      subtitle: Text(_subtitle(video)),
+                      subtitle: Text(
+                        playing ? '正在播放 · ${_subtitle(video)}' : _subtitle(video),
+                      ),
+                      trailing: playing
+                          ? Icon(Icons.graphic_eq, color: scheme.primary)
+                          : null,
                       onTap: () {
+                        final listing = _listing!;
                         Navigator.pop(context);
-                        widget.onVideoSelected(video.watchUrl);
+                        widget.onVideoSelected(video.watchUrl, listing);
                       },
                     );
                   },
