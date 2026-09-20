@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../models/channel_listing.dart';
 import '../../models/cue.dart' as cue;
 import '../../models/saved_sentence.dart';
 import '../../services/app_settings.dart';
@@ -45,7 +46,6 @@ class YoutubeLearnController extends ChangeNotifier {
   List<cue.Cue> _rawCues = [];
   List<cue.Cue> _mergedCues = [];
   int? activeCueIndex;
-  int? speakingCueIndex;
   int? _overlayActiveCueIndex;
   int? selectedCueIndex;
   int? selectionAnchor;
@@ -65,9 +65,53 @@ class YoutubeLearnController extends ChangeNotifier {
   String? _currentVideoTitle;
   Duration? _videoDuration;
 
+  ChannelListing? _channelListing;
+  int? _channelVideoIndex;
+
   StreamSubscription<Duration>? _positionSub;
 
   YoutubeRepository get youtube => _youtube;
+
+  String? get currentVideoId => _currentVideoId;
+
+  bool get canPlayNextInChannel =>
+      _channelListing != null &&
+      _channelVideoIndex != null &&
+      _channelVideoIndex! < _channelListing!.videos.length - 1;
+
+  String? get nextChannelWatchUrl {
+    if (!canPlayNextInChannel) return null;
+    return _channelListing!.videos[_channelVideoIndex! + 1].watchUrl;
+  }
+
+  void bindChannelListing(ChannelListing listing) {
+    _channelListing = listing;
+    _syncChannelVideoIndex();
+    notifyListeners();
+  }
+
+  Future<void> playNextInChannel() async {
+    final url = nextChannelWatchUrl;
+    if (url == null) return;
+    await loadVideo(url);
+  }
+
+  void _syncChannelVideoIndex() {
+    final id = _currentVideoId;
+    final listing = _channelListing;
+    if (listing == null || id == null) {
+      _channelVideoIndex = null;
+      return;
+    }
+    final idx = listing.videos.indexWhere((v) => v.videoId == id);
+    _channelVideoIndex = idx >= 0 ? idx : null;
+  }
+
+  Future<void> _restoreChannelListingFromCache() async {
+    if (_channelListing != null) return;
+    final cache = await YoutubeLearnCache.load();
+    _channelListing = cache.loadChannelCache().listing;
+  }
 
   bool get overlayOriginalCaptions =>
       _settings.subtitleDisplayMode == SubtitleDisplayMode.original;
@@ -91,7 +135,6 @@ class YoutubeLearnController extends ChangeNotifier {
 
   void _syncCueIndices(Duration position) {
     activeCueIndex = cue.lyricDisplayCueIndex(cues, position);
-    speakingCueIndex = cue.activeCueIndex(cues, position);
     _overlayActiveCueIndex = overlayOriginalCaptions
         ? cue.lyricDisplayCueIndex(_rawCues, position)
         : null;
@@ -99,15 +142,12 @@ class YoutubeLearnController extends ChangeNotifier {
 
   void _onPosition(Duration position) {
     final displayIndex = cue.lyricDisplayCueIndex(cues, position);
-    final speakingIndex = cue.activeCueIndex(cues, position);
     final overlayIndex = overlayOriginalCaptions
         ? cue.lyricDisplayCueIndex(_rawCues, position)
         : null;
     if (displayIndex != activeCueIndex ||
-        speakingIndex != speakingCueIndex ||
         overlayIndex != _overlayActiveCueIndex) {
       activeCueIndex = displayIndex;
-      speakingCueIndex = speakingIndex;
       _overlayActiveCueIndex = overlayIndex;
       notifyListeners();
     }
@@ -160,7 +200,6 @@ class YoutubeLearnController extends ChangeNotifier {
     studyMarkLoadingCueIndex = null;
     studyMarkLoadingWordIndex = null;
     activeCueIndex = null;
-    speakingCueIndex = null;
     _overlayActiveCueIndex = null;
     _clearWordSelection();
     _clearSentenceGloss();
@@ -205,6 +244,8 @@ class YoutubeLearnController extends ChangeNotifier {
       _currentWatchUrl = trimmed;
       _currentVideoTitle = meta.title;
       _videoDuration = meta.duration;
+      await _restoreChannelListingFromCache();
+      _syncChannelVideoIndex();
       await _loadStudyMarks(videoId);
       applySubtitleDisplayMode();
       _syncCueIndices(seekAfter ?? player.state.position);
@@ -300,7 +341,6 @@ class YoutubeLearnController extends ChangeNotifier {
     }
   }
 
-  /// Returns a sentence to persist when translation succeeded and should be saved.
   Future<void> _loadStudyMarks(String videoId) async {
     _studyMarksByCue.clear();
     final marks = await _studyMarkStore.listForVideo(videoId);
@@ -329,6 +369,16 @@ class YoutubeLearnController extends ChangeNotifier {
       }
     }
     return gloss;
+  }
+
+  Set<int> studyMarkedIndicesForPanel(int cueIndex) {
+    if (activeCueIndex != cueIndex) return {};
+    return markedWordIndices(cueIndex);
+  }
+
+  Map<int, String> studyGlossForPanel(int cueIndex) {
+    if (activeCueIndex != cueIndex) return {};
+    return studyGlossForCue(cueIndex);
   }
 
   bool get hasStudyMarks => _studyMarksByCue.isNotEmpty;
@@ -432,6 +482,7 @@ class YoutubeLearnController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Returns a sentence to persist when translation succeeded and should be saved.
   Future<SavedSentence?> onSentenceTranslate(int cueIndex) async {
     if (cueIndex < 0 || cueIndex >= cues.length) return null;
 

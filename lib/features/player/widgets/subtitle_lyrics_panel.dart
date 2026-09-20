@@ -17,7 +17,6 @@ class SubtitleLyricsPanel extends StatelessWidget {
     required this.onLineReplay,
     required this.onSentenceTranslate,
     this.selectedCueIndex,
-    this.speakingCueIndex,
     this.sentenceGlossCueIndex,
     this.sentenceGloss,
     this.sentenceGlossLoading = false,
@@ -28,7 +27,6 @@ class SubtitleLyricsPanel extends StatelessWidget {
 
   final List<Cue> cues;
   final int? activeCueIndex;
-  final int? speakingCueIndex;
   final int? selectedCueIndex;
   final List<int> selectedWordIndices;
   final Map<int, String> glossByIndex;

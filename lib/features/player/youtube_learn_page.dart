@@ -14,8 +14,8 @@ import '../review/sentence_review_page.dart';
 import 'widgets/channel_picker_sheet.dart';
 import 'widgets/learn_settings_dialog.dart';
 import 'prep_subtitle_page.dart';
-import 'widgets/subtitle_line.dart';
 import 'widgets/subtitle_lyrics_panel.dart';
+import 'widgets/video_caption_overlay.dart';
 import 'youtube_learn_controller.dart';
 
 /// Default link for local manual testing.
@@ -118,11 +118,20 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
     ChannelPickerSheet.show(
       context,
       youtube: _controller.youtube,
-      onVideoSelected: (url) {
+      playingVideoId: _controller.currentVideoId,
+      onVideoSelected: (url, listing) {
+        _controller.bindChannelListing(listing);
         _urlController.text = url;
         _loadVideo();
       },
     );
+  }
+
+  Future<void> _playNextInChannel() async {
+    final url = _controller.nextChannelWatchUrl;
+    if (url == null) return;
+    _urlController.text = url;
+    await _controller.playNextInChannel();
   }
 
   @override
@@ -148,6 +157,13 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
             appBar: AppBar(
               title: const Text(kAppDisplayName),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.skip_next),
+                  tooltip: '频道下一集',
+                  onPressed: c.canPlayNextInChannel && !c.loading
+                      ? _playNextInChannel
+                      : null,
+                ),
                 PopupMenuButton<double>(
                   tooltip: '播放速度',
                   onSelected: c.setPlaybackSpeed,
@@ -253,63 +269,15 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                             child: Video(
                               controller: c.videoController,
                               fit: BoxFit.contain,
+                              controls: (state) => Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  AdaptiveVideoControls(state),
+                                  VideoCaptionOverlay(controller: c),
+                                ],
+                              ),
                             ),
                           ),
-                          if (c.activeCueIndex != null &&
-                              c.activeCueIndex! >= 0 &&
-                              c.activeCueIndex! < c.cues.length)
-                            Positioned(
-                              left: 16,
-                              right: 16,
-                              bottom: 20,
-                              child: SubtitleLine(
-                                cue: c.cues[c.activeCueIndex!],
-                                isActive: true,
-                                selectedWordIndices: const [],
-                                glossByIndex: const {},
-                                studyMarkedIndices: c.markedWordIndices(
-                                  c.activeCueIndex!,
-                                ),
-                                studyGlossByIndex: c.studyGlossForCue(
-                                  c.activeCueIndex!,
-                                ),
-                                loadingIndex: null,
-                                showLineActions: false,
-                                lightOnDark: true,
-                                fontSizeActive: 20,
-                                fontSizeInactive: 20,
-                                onWordTap: (_, __) {},
-                              ),
-                            )
-                          else if (c.overlayOriginalCaptions)
-                            Positioned(
-                              left: 16,
-                              right: 16,
-                              bottom: 20,
-                              child: Builder(
-                                builder: (context) {
-                                  final line = c.videoOverlayCaptionText;
-                                  if (line == null) {
-                                    return const SizedBox.shrink();
-                                  }
-                                  return Text(
-                                    line,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      shadows: [
-                                        Shadow(
-                                          blurRadius: 8,
-                                          color: Colors.black87,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -322,18 +290,11 @@ class _YoutubeLearnPageState extends State<YoutubeLearnPage> {
                     child: SubtitleLyricsPanel(
                       cues: c.cues,
                       activeCueIndex: c.activeCueIndex,
-                      speakingCueIndex: c.speakingCueIndex,
                       selectedCueIndex: c.selectedCueIndex,
                       selectedWordIndices: c.selectedWordIndices,
                       glossByIndex: c.glossByIndex,
-                      studyMarkedIndicesForCue: (cueIndex) {
-                        if (c.activeCueIndex != cueIndex) return {};
-                        return c.markedWordIndices(cueIndex);
-                      },
-                      studyGlossForCue: (cueIndex) {
-                        if (c.activeCueIndex != cueIndex) return {};
-                        return c.studyGlossForCue(cueIndex);
-                      },
+                      studyMarkedIndicesForCue: c.studyMarkedIndicesForPanel,
+                      studyGlossForCue: c.studyGlossForPanel,
                       loadingIndex: c.loadingIndex,
                       onWordTap: c.onWordTap,
                       onLineReplay: c.onLineReplay,
